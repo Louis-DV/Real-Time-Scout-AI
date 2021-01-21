@@ -1,1 +1,1 @@
-# Real-Time-Scout-AI
+# Real-Time Scout AI
