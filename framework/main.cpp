@@ -37,6 +37,9 @@
 #include "projects/App_BehaviorTree/App_AgarioGame_BT.h"
 #endif // BT
 
+#ifdef Research
+#include "projects/App_ResearchProject/App_ResearchProject.h"
+#endif // AStar
 
 
 
@@ -119,6 +122,9 @@ int main(int argc, char* argv[])
 #ifdef BT
 		myApp = new App_AgarioGame_BT();
 #endif // BT
+#ifdef Research
+		myApp = new App_ResearchProject();
+#endif // Research
 
 
 

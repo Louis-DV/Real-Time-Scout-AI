@@ -160,7 +160,7 @@ namespace Elite
 			RenderCircleNode(
 				pGraph->GetNodeWorldPos(node),
 				"",
-				3.1f,
+				2.f,
 				col,
 				-0.2f
 			);

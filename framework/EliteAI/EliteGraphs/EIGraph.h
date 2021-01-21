@@ -449,6 +449,12 @@ namespace Elite
 			case TerrainType::Water:
 				return WATER_NODE_COLOR;
 				break;
+			case TerrainType::Wall:
+				return WALL_NODE_COLOR;
+				break;
+			case TerrainType::Hill:
+				return HILL_NODE_COLOR;
+				break;
 		}
 
 		return  DEFAULT_NODE_COLOR;

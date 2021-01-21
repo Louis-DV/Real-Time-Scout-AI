@@ -321,6 +321,7 @@
     <ClCompile Include="projects\App_GraphTheory\App_GraphTheory.cpp" />
     <ClCompile Include="projects\App_NavMeshGraph\App_NavMeshGraph.cpp" />
     <ClCompile Include="projects\App_PathfindingAStar\App_PathfindingAStar.cpp" />
+    <ClCompile Include="projects\App_ResearchProject\App_ResearchProject.cpp" />
     <ClCompile Include="projects\App_Sandbox\App_Sandbox.cpp" />
     <ClCompile Include="projects\App_Sandbox\SandboxAgent.cpp" />
     <ClCompile Include="projects\App_Steering\Behaviors\App_SteeringBehaviors.cpp" />
@@ -417,6 +418,7 @@
     <ClInclude Include="projects\App_GraphTheory\App_GraphTheory.h" />
     <ClInclude Include="projects\App_NavMeshGraph\App_NavMeshGraph.h" />
     <ClInclude Include="projects\App_PathfindingAStar\App_PathfindingAStar.h" />
+    <ClInclude Include="projects\App_ResearchProject\App_ResearchProject.h" />
     <ClInclude Include="projects\App_Sandbox\App_Sandbox.h" />
     <ClInclude Include="projects\App_Sandbox\SandboxAgent.h" />
     <ClInclude Include="projects\App_Selector.h" />

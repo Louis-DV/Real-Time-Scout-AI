@@ -8,4 +8,5 @@
 //#define AStar
 //#define NavMesh
 //#define FSM
-#define BT
+//#define BT
+#define Research

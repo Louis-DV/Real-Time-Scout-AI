@@ -19,7 +19,7 @@ bool Elite::EGraphEditor::UpdateGraph(GridGraph<GridTerrainNode, GraphConnection
 
 		ImGui::Text("Terrain Type");
 		ImGui::Indent();
-		if (ImGui::Combo("", &m_SelectedTerrainType, "Ground\0Mud\0Water", 3))
+		if (ImGui::Combo("", &m_SelectedTerrainType, "Ground\0Mud\0Water\0Hill\0Wall", 5))
 		{
 
 		}
@@ -44,7 +44,7 @@ bool Elite::EGraphEditor::UpdateGraph(GridGraph<GridTerrainNode, GraphConnection
 		
 		if (idx != invalid_node_index)
 		{
-			std::vector<TerrainType> terrainTypeVec{ TerrainType::Ground, TerrainType::Mud, TerrainType::Water };
+			std::vector<TerrainType> terrainTypeVec{ TerrainType::Ground, TerrainType::Mud, TerrainType::Water, TerrainType::Hill, TerrainType::Wall };
 
 			pGraph->GetNode(idx)->SetTerrainType(terrainTypeVec[m_SelectedTerrainType]);
 			
