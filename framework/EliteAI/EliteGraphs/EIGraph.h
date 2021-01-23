@@ -455,6 +455,12 @@ namespace Elite
 			case TerrainType::Hill:
 				return HILL_NODE_COLOR;
 				break;
+			case TerrainType::Unknown:
+				return UNKNOWN_NODE_COLOR;
+				break;
+			case TerrainType::Forest:
+				return FOREST_NODE_COLOR;
+				break;
 		}
 
 		return  DEFAULT_NODE_COLOR;

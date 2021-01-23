@@ -8,6 +8,7 @@ enum
 
 enum class TerrainType : int
 {
+	Unknown = 0,
 	Ground = 1,
 	Hill = 2,
 	Mud = 3,

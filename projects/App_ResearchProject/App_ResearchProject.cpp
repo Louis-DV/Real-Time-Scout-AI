@@ -5,6 +5,7 @@
 #include "App_ResearchProject.h"
 #include "framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EAstar.h"
 #include "framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EBFS.h"
+#include <algorithm>
 
 using namespace Elite;
 
@@ -27,7 +28,7 @@ void App_ResearchProject::Start()
 	MakeGridGraph();
 
 	startPathIdx = 0;
-	endPathIdx = 4;
+	endPathIdx = 101;
 
 	m_pSeekBehavior = new Seek();
 	m_pAgent = new SteeringAgent();
@@ -35,6 +36,7 @@ void App_ResearchProject::Start()
 	m_pAgent->SetMaxLinearSpeed(m_AgentSpeed);
 	m_pAgent->SetAutoOrient(true);
 	m_pAgent->SetMass(.1f);
+	m_pAgent->SetPosition({ 15,55 });
 
 }
 
@@ -49,7 +51,7 @@ void App_ResearchProject::Update(float deltaTime)
 		MouseData mouseData = { INPUTMANAGER->GetMouseData(Elite::InputType::eMouseButton, Elite::InputMouseButton::eMiddle) };
 		Elite::Vector2 mousePos = DEBUGRENDERER2D->GetActiveCamera()->ConvertScreenToWorld({ (float)mouseData.X, (float)mouseData.Y });
 		//Find closest node to click pos
-		int closestNode = m_pGridGraph->GetNodeFromWorldPos(mousePos);
+		int closestNode = m_pMappedGridGraph->GetNodeFromWorldPos(mousePos);
 		if (m_StartSelected)
 		{
 			startPathIdx = closestNode;
@@ -62,7 +64,7 @@ void App_ResearchProject::Update(float deltaTime)
 		}
 	}
 	
-	int newStart = m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition());
+	int newStart = m_pMappedGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition());
 	if (newStart != startPathIdx)
 	{
 		startPathIdx = newStart;
@@ -80,6 +82,92 @@ void App_ResearchProject::Update(float deltaTime)
 	UpdateImGui();
 
 
+
+	if (m_pGridGraph->GetNode(m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition()))->GetTerrainType() == TerrainType::Hill)
+	{
+		m_SightRadius = 35.f;
+		SetHillScore();
+	}
+	else
+	{
+		m_SightRadius = 25.f;
+	}
+
+
+	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
+	{
+		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()), m_pAgent->GetPosition()) <= m_SightRadius * m_SightRadius)
+		{
+
+
+			node->SetTerrainType(m_pGridGraph->GetNode(node->GetIndex())->GetTerrainType());
+			m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
+		}
+	}
+
+	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
+	{
+		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()),m_pAgent->GetPosition()) <= m_SightRadius*m_SightRadius)
+		{
+
+
+			node->SetTerrainType(m_pGridGraph->GetNode(node->GetIndex())->GetTerrainType());
+			m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
+
+			bool important{};
+			if (node->GetTerrainType() == TerrainType::Ground)
+			{
+				for (GraphConnection* connection : m_pMappedGridGraph->GetConnections(node->GetIndex()))
+				{
+					if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() != TerrainType::Ground)
+						important = true;
+				}
+			}
+
+			if ((node->GetTerrainType() == TerrainType::Hill))
+			{
+				m_ImportantNodeList.push_back(node->GetIndex());
+				endPathIdx = node->GetIndex();
+			}
+
+			auto it = std::find(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), node->GetIndex());
+			if (it != m_ImportantNodeList.end())
+			{
+				if (!important)
+				{
+					m_ImportantNodeList.erase(it);
+					m_SeenNodesMap[node->GetIndex()] = 0.f;
+				}
+			}
+			else
+			{
+				if (important)
+				{
+					m_ImportantNodeList.push_back(node->GetIndex());
+				}
+				else
+				{
+					m_SeenNodesMap[node->GetIndex()] = 0.f;
+				}
+			}
+
+
+			
+
+
+		}
+	}
+
+	if (!m_ImportantNodeList.empty())
+	{
+		int newEndPathIdx = *std::min_element(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), [this](int idx1, int idx2) {return DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx1)) < DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx2)); });
+		if (newEndPathIdx != endPathIdx)
+		{
+			m_UpdatePath = true;
+			endPathIdx = newEndPathIdx;
+		}
+	}
+	
 	//CALCULATEPATH
 	//If we have nodes and the target is not the startNode, find a path!
 	if (m_UpdatePath 
@@ -88,16 +176,16 @@ void App_ResearchProject::Update(float deltaTime)
 		&& startPathIdx != endPathIdx)
 	{
 		//BFS Pathfinding
-		auto pathfinder = AStar<GridTerrainNode, GraphConnection>(m_pGridGraph, m_pHeuristicFunction);
-		auto startNode = m_pGridGraph->GetNode(startPathIdx);
-		auto endNode = m_pGridGraph->GetNode(endPathIdx);
+		auto pathfinder = AStar<GridTerrainNode, GraphConnection>(m_pMappedGridGraph, m_pHeuristicFunction);
+		auto startNode = m_pMappedGridGraph->GetNode(startPathIdx);
+		auto endNode = m_pMappedGridGraph->GetNode(endPathIdx);
 
 		m_vPath = pathfinder.FindPath(startNode, endNode);
 
 		m_UpdatePath = false;
 		std::cout << "New Path Calculated" << std::endl;
 
-		m_pSeekBehavior->SetTarget(TargetData((m_pGridGraph->GetNodePos(m_vPath[1]->GetIndex()) + Vector2{0.5f,0.5f})* m_SizeCell));
+		m_pSeekBehavior->SetTarget(TargetData(m_pGridGraph->GetNodeWorldPos(m_vPath[1])));
 	}
 
 
@@ -108,8 +196,15 @@ void App_ResearchProject::Render(float deltaTime) const
 {
 	UNREFERENCED_PARAMETER(deltaTime);
 	//Render grid
-	m_GraphRenderer.RenderGraph(
+	/*m_GraphRenderer.RenderGraph(
 		m_pGridGraph, 
+		m_bDrawGrid, 
+		m_bDrawNodeNumbers, 
+		m_bDrawConnections, 
+		m_bDrawConnectionsCosts
+	);*/
+	m_GraphRenderer.RenderGraph(
+		m_pMappedGridGraph, 
 		m_bDrawGrid, 
 		m_bDrawNodeNumbers, 
 		m_bDrawConnections, 
@@ -141,11 +236,20 @@ void App_ResearchProject::Render(float deltaTime) const
 
 void App_ResearchProject::MakeGridGraph()
 {
-	m_pGridGraph = new GridGraph<GridTerrainNode, GraphConnection>(COLUMNS, ROWS, m_SizeCell, false, true, 1.f, 1.5f);
+	m_pGridGraph = new GridGraph<GridTerrainNode, GraphConnection>(COLUMNS, ROWS, m_SizeCell, false, false, 1.f, 1.5f);
+	m_pMappedGridGraph = new GridGraph<GridTerrainNode, GraphConnection>(COLUMNS, ROWS, m_SizeCell, false, false, 1.f, 1.5f);
+	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
+	{
+		node->SetTerrainType(TerrainType::Unknown);
+		m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
+	}
+
+
+
 	//m_pGridGraph->IsolateNode(6);
-	m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Mud);
+	/*m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Mud);
 	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Wall);
-	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Water);*/
 	for (size_t i = 0; i < m_pGridGraph->GetNrOfNodes(); ++i)
 	{
 		m_pGridGraph->UnIsolateNode(i);
@@ -237,4 +341,9 @@ void App_ResearchProject::UpdateImGui()
 	}
 #pragma endregion
 #endif
+}
+
+void App_ResearchProject::SetHillScore()
+{
+
 }

@@ -39,12 +39,14 @@ private:
 	float m_AgentSpeed = 10.f;
 	float m_SightRadius = 25.f;
 	std::map<int, float> m_SeenNodesMap;
+	std::list<int> m_ImportantNodeList;
 
 	//Grid datamembers
 	static const int COLUMNS = 20;
 	static const int ROWS = 10;
 	unsigned int m_SizeCell = 10;
 	Elite::GridGraph<Elite::GridTerrainNode, Elite::GraphConnection>* m_pGridGraph;
+	Elite::GridGraph<Elite::GridTerrainNode, Elite::GraphConnection>* m_pMappedGridGraph;
 
 
 	//Pathfinding datamembers
@@ -69,6 +71,7 @@ private:
 	//Functions
 	void MakeGridGraph();
 	void UpdateImGui();
+	void SetHillScore();
 
 	//C++ make the class non-copyable
 	App_ResearchProject(const App_ResearchProject&) = delete;
