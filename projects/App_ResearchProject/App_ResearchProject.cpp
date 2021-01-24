@@ -13,6 +13,9 @@ using namespace Elite;
 App_ResearchProject::~App_ResearchProject()
 {
 	SAFE_DELETE(m_pGridGraph);
+	SAFE_DELETE(m_pMappedGridGraph);
+	SAFE_DELETE(m_pSeekBehavior);
+	SAFE_DELETE(m_pAgent);
 }
 
 //Functions
@@ -449,13 +452,13 @@ bool App_ResearchProject::SetNodeScore(int idx)
 			&& (m_pMappedGridGraph->GetNode(north)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(north)->GetTerrainType() == TerrainType::Water) 
 			&& (m_pMappedGridGraph->GetNode(south)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(south)->GetTerrainType() == TerrainType::Water))
 		{
-			score += 9;
+			score += 10;
 		}
 		else if ((east != -1 && west != -1)
 			&& (m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Water)
 			&& (m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Water))
 		{
-			score += 9;
+			score += 10;
 		}
 		else
 		{
