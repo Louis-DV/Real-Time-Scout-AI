@@ -81,6 +81,8 @@ void App_ResearchProject::Update(float deltaTime)
 	//IMGUI
 	UpdateImGui();
 
+
+	//Change sight radius according to the current node, and set scores if on forest or hill  
 	GridTerrainNode* pCurrentNode = m_pMappedGridGraph->GetNode(m_pMappedGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition()));
 
 	if (pCurrentNode->GetTerrainType() == TerrainType::Hill)
@@ -105,6 +107,8 @@ void App_ResearchProject::Update(float deltaTime)
 	}
 
 
+
+	//Put all visible nodes in map graph
 	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
 	{
 		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()), m_pAgent->GetPosition()) <= m_SightRadius * m_SightRadius)
@@ -118,11 +122,11 @@ void App_ResearchProject::Update(float deltaTime)
 		}
 	}
 
+	//Go over all visible nodes without a score and set the score if possible
 	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
 	{
 		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()),m_pAgent->GetPosition()) <= m_SightRadius*m_SightRadius)
 		{
-
 
 			node->SetTerrainType(m_pGridGraph->GetNode(node->GetIndex())->GetTerrainType());
 			m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
@@ -157,16 +161,12 @@ void App_ResearchProject::Update(float deltaTime)
 					important = true;
 				}
 			}
-
-
-
 			auto it = std::find(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), node->GetIndex());
 			if (it != m_ImportantNodeList.end())
 			{
 				if (!important)
 				{
 					m_ImportantNodeList.erase(it);
-					//m_SeenNodesMap[node->GetIndex()] = 0;
 				}
 			}
 			else
@@ -175,22 +175,27 @@ void App_ResearchProject::Update(float deltaTime)
 				{
 					m_ImportantNodeList.push_back(node->GetIndex());
 				}
-				/*else
-				{
-					m_SeenNodesMap[node->GetIndex()] = 0;
-				}*/
 			}
-
-
-			
-
-
 		}
 	}
 
+	//Set endPathIdx to closest important node, or closest hill if any hills are in the list
 	if (!m_ImportantNodeList.empty())
 	{
-		int newEndPathIdx = *std::min_element(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), [this](int idx1, int idx2) {return DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx1)) < DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx2)); });
+		int newEndPathIdx = *std::min_element(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), [this](int idx1, int idx2) 
+			{
+			
+				if ((m_pMappedGridGraph->GetNode(idx1)->GetTerrainType() == TerrainType::Hill && m_pMappedGridGraph->GetNode(idx2)->GetTerrainType() == TerrainType::Hill) || (m_pMappedGridGraph->GetNode(idx1)->GetTerrainType() != TerrainType::Hill && m_pMappedGridGraph->GetNode(idx2)->GetTerrainType() != TerrainType::Hill))
+				{
+					return DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx1)) < DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(idx2));
+				}
+				else
+				{
+					return m_pMappedGridGraph->GetNode(idx1)->GetTerrainType() == TerrainType::Hill;
+				}
+			
+			});
+
 		if (newEndPathIdx != endPathIdx)
 		{
 			m_UpdatePath = true;
@@ -225,14 +230,7 @@ void App_ResearchProject::Update(float deltaTime)
 void App_ResearchProject::Render(float deltaTime) const
 {
 	UNREFERENCED_PARAMETER(deltaTime);
-	//Render grid
-	/*m_GraphRenderer.RenderGraph(
-		m_pGridGraph, 
-		m_bDrawGrid, 
-		m_bDrawNodeNumbers, 
-		m_bDrawConnections, 
-		m_bDrawConnectionsCosts
-	);*/
+
 	m_GraphRenderer.RenderGraph(
 		m_pMappedGridGraph, 
 		m_bDrawGrid, 
@@ -245,24 +243,6 @@ void App_ResearchProject::Render(float deltaTime) const
 	{
 		DEBUGRENDERER2D->DrawString(m_pMappedGridGraph->GetNodeWorldPos(pair.first), std::to_string(pair.second).c_str());
 	}
-	
-	////Render start node on top if applicable
-	//if (startPathIdx != invalid_node_index)
-	//{
-	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(startPathIdx) }, START_NODE_COLOR);
-	//}
-
-	////Render end node on top if applicable
-	//if (endPathIdx != invalid_node_index)
-	//{
-	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(endPathIdx) }, END_NODE_COLOR);
-	//}
-	//
-	////render path below if applicable
-	//if (m_vPath.size() > 0)
-	//{
-	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, m_vPath);
-	//}
 	
 	m_pAgent->Render(deltaTime);
 
@@ -279,42 +259,8 @@ void App_ResearchProject::MakeGridGraph()
 		m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
 	}
 
+	CreateMap();
 
-
-	//m_pGridGraph->IsolateNode(6);
-	/*m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Mud);
-	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Wall);
-	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Water);*/
-	m_pGridGraph->GetNode(6)->SetTerrainType(TerrainType::Mud);
-	m_pGridGraph->GetNode(26)->SetTerrainType(TerrainType::Mud);
-	m_pGridGraph->GetNode(25)->SetTerrainType(TerrainType::Mud);
-	m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(27)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(47)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(67)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(68)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(88)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(128)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(168)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(169)->SetTerrainType(TerrainType::Water);
-	m_pGridGraph->GetNode(189)->SetTerrainType(TerrainType::Water);
-
-
-	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Forest);
-	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Forest);
-	m_pGridGraph->GetNode(10)->SetTerrainType(TerrainType::Forest);
-	m_pGridGraph->GetNode(28)->SetTerrainType(TerrainType::Forest);
-	m_pGridGraph->GetNode(29)->SetTerrainType(TerrainType::Forest);
-	m_pGridGraph->GetNode(30)->SetTerrainType(TerrainType::Forest);
-
-	m_pGridGraph->GetNode(146)->SetTerrainType(TerrainType::Hill);
-	
-	for (size_t i = 0; i < m_pGridGraph->GetNrOfNodes(); ++i)
-	{
-		m_pGridGraph->UnIsolateNode(i);
-	}
 }
 
 void App_ResearchProject::UpdateImGui()
@@ -419,6 +365,9 @@ void App_ResearchProject::SetHillScore()
 		}
 	}
 
+	if (score > 10)
+		score = 10;
+
 	m_SeenNodesMap[m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition())] = score;
 }
 
@@ -436,58 +385,168 @@ void App_ResearchProject::SetForestScore()
 			}
 		}
 	}
-
-
 	m_SeenNodesMap[m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition())] = score;
 }
 
 bool App_ResearchProject::SetNodeScore(int idx)
 {
+	//Check terrain of the node itself
+	int score = 0;
 	if (m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Hill || m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Forest)
 		return false;
 
-	int score = 0;
-	int groundConnections = 0;
-	std::vector<GridTerrainNode*> nodeVector{};
-
-	auto connections = m_pMappedGridGraph->GetConnections(idx);
-
-	for (GraphConnection* connection : connections)
+	if (m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Water)
 	{
-		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Unknown)
-			return false;
-			
-		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Forest)
+		m_SeenNodesMap[idx] = -10;
+		return true;
+	}
+	
+	if (m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Mud)
+	{
+		score -= 5;
+	}
+
+	//get all 4 adjacent nodes and put in list
+	int north = m_pMappedGridGraph->GetNodeFromWorldPos( m_pMappedGridGraph->GetNodeWorldPos(idx)  + Vector2{0, (float)m_SizeCell} );
+	int east = m_pMappedGridGraph->GetNodeFromWorldPos( m_pMappedGridGraph->GetNodeWorldPos(idx)  + Vector2{ (float)m_SizeCell,0} );
+	int south = m_pMappedGridGraph->GetNodeFromWorldPos( m_pMappedGridGraph->GetNodeWorldPos(idx)  + Vector2{0, -(float)m_SizeCell} );
+	int west = m_pMappedGridGraph->GetNodeFromWorldPos( m_pMappedGridGraph->GetNodeWorldPos(idx)  + Vector2{-(float)m_SizeCell,0} );
+
+	std::vector<int> connectionIndices{north,east,south,west};
+	int badAdjacentNodeAmount{0};
+
+	//Adjust score for adjacent forests and hills, and check if adjacent to unknown nodes, mud or water 
+	for (int connection : connectionIndices)
+	{
+		if (connection != -1)
 		{
-			score -= 3;
-		}
-		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Hill)
-		{
-			score -= 3;
-		}
-		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Mud)
-		{
-			nodeVector.push_back(m_pMappedGridGraph->GetNode(connection->GetTo()));
+			if (m_pMappedGridGraph->GetNode(connection)->GetTerrainType() == TerrainType::Unknown)
+				return false;
+
+			if (m_pMappedGridGraph->GetNode(connection)->GetTerrainType() == TerrainType::Forest)
+			{
+				score -= 3;
+			}
+			if (m_pMappedGridGraph->GetNode(connection)->GetTerrainType() == TerrainType::Hill)
+			{
+				score -= 3;
+			}
+			if (m_pMappedGridGraph->GetNode(connection)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(connection)->GetTerrainType() == TerrainType::Water)
+			{
+				++badAdjacentNodeAmount;
+			}
 		}
 	}
 
-	size_t badAdjacentNodeAmount{ nodeVector.size() + (4 - connections.size()) };
-
+	//Adjust score for adjacent water and mud 
 	if (badAdjacentNodeAmount >= 3)
 	{
 		score -= 7;
 	}
 	else if (badAdjacentNodeAmount == 2)
 	{
+		if ((north != -1 && south != -1) 
+			&& (m_pMappedGridGraph->GetNode(north)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(north)->GetTerrainType() == TerrainType::Water) 
+			&& (m_pMappedGridGraph->GetNode(south)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(south)->GetTerrainType() == TerrainType::Water))
+		{
+			score += 9;
+		}
+		else if ((east != -1 && west != -1)
+			&& (m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Water)
+			&& (m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Water))
+		{
+			score += 9;
+		}
+		else
+		{
+			score -= 5;
+		}
 
 	}
 	else if (badAdjacentNodeAmount == 1)
 	{
+		if (east != -1 && (m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(east)->GetTerrainType() == TerrainType::Water))
+		{
+			score += 3;
+		}
+		if (west != -1 && (m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Mud || m_pMappedGridGraph->GetNode(west)->GetTerrainType() == TerrainType::Water))
+		{
+			score -= 3;
+		}
 
 	}
 
+	if (score > 10)
+	{
+		score = 10;
+	}
+	else if (score < -10)
+	{
+		score = -10;
+	}
 
 	m_SeenNodesMap[idx] = score;
 
 	return true;
+}
+
+void App_ResearchProject::CreateMap()
+{
+
+	m_pGridGraph->GetNode(6)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(26)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(5)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(27)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(47)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(67)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(68)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(88)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(128)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(168)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(169)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(189)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(14)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(34)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(54)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(74)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(127)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(126)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(147)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(187)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(188)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(87)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(86)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(66)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(46)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(10)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(28)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(29)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(30)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(199)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(179)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(159)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(198)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(178)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(158)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(197)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(177)->SetTerrainType(TerrainType::Hill);
+	m_pGridGraph->GetNode(157)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(196)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(176)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(156)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(195)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(175)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(155)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(76)->SetTerrainType(TerrainType::Hill);
+	m_pGridGraph->GetNode(141)->SetTerrainType(TerrainType::Hill);
+
+	for (size_t i = 0; i < m_pGridGraph->GetNrOfNodes(); ++i)
+	{
+		m_pGridGraph->UnIsolateNode(i);
+	}
 }

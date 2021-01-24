@@ -74,6 +74,7 @@ private:
 	void SetHillScore();
 	void SetForestScore();
 	bool SetNodeScore(int idx);
+	void CreateMap();
 
 	//C++ make the class non-copyable
 	App_ResearchProject(const App_ResearchProject&) = delete;
