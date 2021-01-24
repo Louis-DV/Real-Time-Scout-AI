@@ -44,7 +44,7 @@ I'm saving all the scores in a map, with the index of the node as the key, and t
 
 I give every square a score with some simple loops and if statements, checking the adjacent squares and positions of water or mud. for hills and forests, I just check every square in the scouts field of view. With this, every square now has a score, giving the rest of the AI the needed information to properly position it's units.
 
-![Research3](https://github.com/Louis-DV/Real-Time-Scout-AI/blob/master/Images/Research3.JPG "Research3")
+![ResearchGif](https://github.com/Louis-DV/Real-Time-Scout-AI/blob/master/Images/ResearchGif.GIF "ResearchGif")
 
 One problem I have noticed though, is that the scout stops moving after he has seen everything, and that he doesn't reevaluate squares that he has already given a score. This is not a problem on a static level, which I have limited myself to for this project. but if you have a dynamic level, this will be problem. However, this could be easily fixed by giving every square a timer, which represents how long it's been since the scout has evaluated the square, and then after he's gone through the whole level, you can let him reevaluate the squares that haven't been evaluated for a while.
 
