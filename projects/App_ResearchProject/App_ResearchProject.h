@@ -38,7 +38,7 @@ private:
 	Seek* m_pSeekBehavior = nullptr;
 	float m_AgentSpeed = 10.f;
 	float m_SightRadius = 25.f;
-	std::map<int, float> m_SeenNodesMap;
+	std::map<int, int> m_SeenNodesMap;
 	std::list<int> m_ImportantNodeList;
 
 	//Grid datamembers
@@ -72,6 +72,8 @@ private:
 	void MakeGridGraph();
 	void UpdateImGui();
 	void SetHillScore();
+	void SetForestScore();
+	bool SetNodeScore(int idx);
 
 	//C++ make the class non-copyable
 	App_ResearchProject(const App_ResearchProject&) = delete;

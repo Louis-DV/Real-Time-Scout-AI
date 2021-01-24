@@ -81,12 +81,23 @@ void App_ResearchProject::Update(float deltaTime)
 	//IMGUI
 	UpdateImGui();
 
+	GridTerrainNode* pCurrentNode = m_pMappedGridGraph->GetNode(m_pMappedGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition()));
 
-
-	if (m_pGridGraph->GetNode(m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition()))->GetTerrainType() == TerrainType::Hill)
+	if (pCurrentNode->GetTerrainType() == TerrainType::Hill)
 	{
 		m_SightRadius = 35.f;
-		SetHillScore();
+		if (DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(pCurrentNode)) < 1 && m_SeenNodesMap.count(pCurrentNode->GetIndex()) == 0)
+		{
+			SetHillScore();
+		}
+	}
+	else if (pCurrentNode->GetTerrainType() == TerrainType::Forest)
+	{
+		m_SightRadius = 15.f;
+		if (DistanceSquared(m_pAgent->GetPosition(), m_pMappedGridGraph->GetNodeWorldPos(pCurrentNode)) < 1 && m_SeenNodesMap.count(pCurrentNode->GetIndex()) == 0)
+		{
+			SetForestScore();
+		}
 	}
 	else
 	{
@@ -102,6 +113,8 @@ void App_ResearchProject::Update(float deltaTime)
 
 			node->SetTerrainType(m_pGridGraph->GetNode(node->GetIndex())->GetTerrainType());
 			m_pMappedGridGraph->UnIsolateNode(node->GetIndex());
+
+
 		}
 	}
 
@@ -124,11 +137,28 @@ void App_ResearchProject::Update(float deltaTime)
 				}
 			}
 
-			if ((node->GetTerrainType() == TerrainType::Hill))
+			if (node->GetTerrainType() == TerrainType::Hill || node->GetTerrainType() == TerrainType::Forest)
 			{
-				m_ImportantNodeList.push_back(node->GetIndex());
-				endPathIdx = node->GetIndex();
+				important = true;
 			}
+
+			if (m_SeenNodesMap.count(node->GetIndex()) == 1)
+			{
+				important = false;
+			}
+			else
+			{
+				if (SetNodeScore(node->GetIndex()))
+				{
+					important = false;
+				}
+				else
+				{
+					important = true;
+				}
+			}
+
+
 
 			auto it = std::find(m_ImportantNodeList.begin(), m_ImportantNodeList.end(), node->GetIndex());
 			if (it != m_ImportantNodeList.end())
@@ -136,7 +166,7 @@ void App_ResearchProject::Update(float deltaTime)
 				if (!important)
 				{
 					m_ImportantNodeList.erase(it);
-					m_SeenNodesMap[node->GetIndex()] = 0.f;
+					//m_SeenNodesMap[node->GetIndex()] = 0;
 				}
 			}
 			else
@@ -145,10 +175,10 @@ void App_ResearchProject::Update(float deltaTime)
 				{
 					m_ImportantNodeList.push_back(node->GetIndex());
 				}
-				else
+				/*else
 				{
-					m_SeenNodesMap[node->GetIndex()] = 0.f;
-				}
+					m_SeenNodesMap[node->GetIndex()] = 0;
+				}*/
 			}
 
 
@@ -210,24 +240,29 @@ void App_ResearchProject::Render(float deltaTime) const
 		m_bDrawConnections, 
 		m_bDrawConnectionsCosts
 	);
-	
-	//Render start node on top if applicable
-	if (startPathIdx != invalid_node_index)
-	{
-		m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(startPathIdx) }, START_NODE_COLOR);
-	}
 
-	//Render end node on top if applicable
-	if (endPathIdx != invalid_node_index)
+	for (pair<int,int> pair : m_SeenNodesMap)
 	{
-		m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(endPathIdx) }, END_NODE_COLOR);
+		DEBUGRENDERER2D->DrawString(m_pMappedGridGraph->GetNodeWorldPos(pair.first), std::to_string(pair.second).c_str());
 	}
 	
-	//render path below if applicable
-	if (m_vPath.size() > 0)
-	{
-		m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, m_vPath);
-	}
+	////Render start node on top if applicable
+	//if (startPathIdx != invalid_node_index)
+	//{
+	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(startPathIdx) }, START_NODE_COLOR);
+	//}
+
+	////Render end node on top if applicable
+	//if (endPathIdx != invalid_node_index)
+	//{
+	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, { m_pGridGraph->GetNode(endPathIdx) }, END_NODE_COLOR);
+	//}
+	//
+	////render path below if applicable
+	//if (m_vPath.size() > 0)
+	//{
+	//	m_GraphRenderer.RenderHighlightedGrid(m_pGridGraph, m_vPath);
+	//}
 	
 	m_pAgent->Render(deltaTime);
 
@@ -250,6 +285,32 @@ void App_ResearchProject::MakeGridGraph()
 	/*m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Mud);
 	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Wall);
 	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Water);*/
+	m_pGridGraph->GetNode(6)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(26)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(25)->SetTerrainType(TerrainType::Mud);
+	m_pGridGraph->GetNode(7)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(27)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(47)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(67)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(68)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(88)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(128)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(148)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(168)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(169)->SetTerrainType(TerrainType::Water);
+	m_pGridGraph->GetNode(189)->SetTerrainType(TerrainType::Water);
+
+
+	m_pGridGraph->GetNode(8)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(9)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(10)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(28)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(29)->SetTerrainType(TerrainType::Forest);
+	m_pGridGraph->GetNode(30)->SetTerrainType(TerrainType::Forest);
+
+	m_pGridGraph->GetNode(146)->SetTerrainType(TerrainType::Hill);
+	
 	for (size_t i = 0; i < m_pGridGraph->GetNrOfNodes(); ++i)
 	{
 		m_pGridGraph->UnIsolateNode(i);
@@ -345,5 +406,88 @@ void App_ResearchProject::UpdateImGui()
 
 void App_ResearchProject::SetHillScore()
 {
+	int score = 2;
 
+	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
+	{
+		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()), m_pAgent->GetPosition()) <= m_SightRadius * m_SightRadius)
+		{
+			if (node->GetTerrainType() != TerrainType::Ground)
+			{
+				score += 1;
+			}
+		}
+	}
+
+	m_SeenNodesMap[m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition())] = score;
+}
+
+void App_ResearchProject::SetForestScore()
+{
+	int score = -6;
+
+	for (GridTerrainNode* node : m_pMappedGridGraph->GetAllNodes())
+	{
+		if (DistanceSquared(m_pMappedGridGraph->GetNodeWorldPos(node->GetIndex()), m_pAgent->GetPosition()) <= m_SightRadius * m_SightRadius)
+		{
+			if (node->GetTerrainType() == TerrainType::Ground || node->GetTerrainType() == TerrainType::Hill || node->GetTerrainType() == TerrainType::Mud)
+			{
+				score = 6;
+			}
+		}
+	}
+
+
+	m_SeenNodesMap[m_pGridGraph->GetNodeFromWorldPos(m_pAgent->GetPosition())] = score;
+}
+
+bool App_ResearchProject::SetNodeScore(int idx)
+{
+	if (m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Hill || m_pMappedGridGraph->GetNode(idx)->GetTerrainType() == TerrainType::Forest)
+		return false;
+
+	int score = 0;
+	int groundConnections = 0;
+	std::vector<GridTerrainNode*> nodeVector{};
+
+	auto connections = m_pMappedGridGraph->GetConnections(idx);
+
+	for (GraphConnection* connection : connections)
+	{
+		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Unknown)
+			return false;
+			
+		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Forest)
+		{
+			score -= 3;
+		}
+		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Hill)
+		{
+			score -= 3;
+		}
+		if (m_pMappedGridGraph->GetNode(connection->GetTo())->GetTerrainType() == TerrainType::Mud)
+		{
+			nodeVector.push_back(m_pMappedGridGraph->GetNode(connection->GetTo()));
+		}
+	}
+
+	size_t badAdjacentNodeAmount{ nodeVector.size() + (4 - connections.size()) };
+
+	if (badAdjacentNodeAmount >= 3)
+	{
+		score -= 7;
+	}
+	else if (badAdjacentNodeAmount == 2)
+	{
+
+	}
+	else if (badAdjacentNodeAmount == 1)
+	{
+
+	}
+
+
+	m_SeenNodesMap[idx] = score;
+
+	return true;
 }
