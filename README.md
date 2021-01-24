@@ -50,7 +50,10 @@ One problem I have noticed though, is that the scout stops moving after he has s
 
 
 ## Conclusion
+This implementation of a scout AI will probably not be that useful for a game with a few set maps, as eventually the player will have remembered the whole map, so in higher difficulties this would give the AI a big disadvantage. Also the scores I give can then just be added into the map, making this not that usefull. However, when you are playing on random maps, this could become useful. as there is no way for the player to know anything about the map. this way the AI will analyze the map the same way as the player.
 
+This is also only a part of a final scout AI you would need for a real game. The scout will have to be able to evade enemies, change the scores of certain squares according to the enemies that are present, etc.
+If that is also implemented, then it should be an interesting and valuable addition to certain fps games. 
 
 
 
